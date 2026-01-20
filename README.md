@@ -2,50 +2,38 @@
 
 ## Document Classification
 Internal / Restricted – Defense & Government Use  
-Air-Gapped • Offline • Volume License Compliant  
+Air-Gapped • Offline • Volume License Compliant
 
 ---
 
 ## 1. Purpose
-
-The **CX Upgrade Framework** provides a **safe, automated, offline, zero-login** method to upgrade **Windows 10 Enterprise/Pro systems to Windows 11 Enterprise** in production environments.  
-
-It is designed for:
-- Army / Defense / Government environments  
-- Air-gapped networks  
-- Volume-licensed systems  
-- Systems with unknown domain, NAS, or network dependencies  
+The **CX Upgrade Framework** automates an in-place upgrade from **Windows 10 Pro/Enterprise** to **Windows 11 Enterprise** without user login, internet, domain, or NAS dependencies.  
 
 **Key Guarantees:**
-- No data loss  
-- No application loss  
-- No configuration loss  
-- Zero user login required  
-- Fully reversible (automatic rollback)  
-- Volume License compliant  
+- Preserves all user data, apps, and configurations
+- Requires no user interaction
+- Fully reversible with automatic rollback
+- Volume License compliant
+- Logs and status for audit
 
 ---
 
-## 2. Supported Scenarios
+## 2. Supported Systems
+**Supported:**
+- Windows 10 Pro / Enterprise (x64)
+- Domain-joined or standalone
+- Offline, air-gapped environments
+- BitLocker enabled (auto-suspended)
 
-- Domain-joined systems  
-- Standalone / workgroup systems  
-- Offline / air-gapped systems  
-- Systems with mapped drives or NAS usage  
-- Systems with BitLocker enabled  
-- Systems without network connectivity  
-
-**Not supported:**  
-- Retail Windows editions  
-- Windows Home  
-- Systems without TPM 2.0 capability  
+**Unsupported:**
+- Windows Home editions
+- Systems without TPM 2.0 or Secure Boot
+- Retail (non-volume license) ISO
 
 ---
 
 ## 3. Folder & Naming Standards (MANDATORY)
-
-**Folder name `CX` defines the business identity and must not be changed.**
-
+**Folder name `CX` is required. Do NOT rename.**
 C:\CX
 ├── install_task.cmd
 ├── uninstall_task.cmd
@@ -59,203 +47,164 @@ C:\CX
 ├── logs
 └── state
 
-
-❗ Renaming or moving files will prevent proper execution.
-
----
-
-## 4. Pre-Deployment Prerequisites
-
-### Hardware Requirements
-- TPM 2.0 present and enabled  
-- Secure Boot capable  
-- Minimum 4 GB RAM (8 GB recommended)  
-- Minimum 70 GB free disk space on C:  
-- AC power connected  
-
-### Software Requirements
-- Windows 10 Pro or Enterprise (Volume Licensed)  
-- BitLocker allowed (will be auto-suspended)  
-- No pending reboots  
-
-### Media Requirements
-- Official **Windows 11 Enterprise Volume License ISO**  
-- ISO must be offline and verified  
-- Retail or consumer ISO is strictly prohibited  
+ISO must be at: `C:\CX\payload\Win11_23H2_ENT.iso`.
 
 ---
 
-## 5. Pre-Execution Checklist (Operator Must Verify)
+## 4. Prerequisites
+**Hardware:**
+- TPM 2.0 enabled
+- Secure Boot enabled
+- ≥70 GB free on C:
+- AC power connected
 
-- [ ] ISO present at `C:\CX\payload\Win11_23H2_ENT.iso`  
-- [ ] Disk free space ≥ 70 GB  
-- [ ] No pending reboots or system tasks  
-- [ ] System is idle or safe for maintenance  
-- [ ] Power source is stable  
-- [ ] Backup policy verified  
+**Software:**
+- Windows 10 Pro/Enterprise (Volume License)
+- No pending reboots
+
+**Media:**
+- Official Windows 11 Enterprise Volume License ISO
+- Must be offline and verified
+- Retail ISO strictly prohibited
 
 ---
 
-## 6. Installation Procedure (One-Time Setup)
+## 5. Pre-Execution Checklist
+- [ ] ISO present at `C:\CX\payload\Win11_23H2_ENT.iso`
+- [ ] Disk free space ≥ 70 GB
+- [ ] System idle or safe for maintenance
+- [ ] Power is stable
+- [ ] Logs folder exists (`C:\CX\logs`)
+- [ ] State folder exists (`C:\CX\state`)
 
-### Step 1 – Copy Framework
-Copy the complete `CX` folder to:
+---
 
-C:\CX
-
-
-### Step 2 – Install SYSTEM Startup Task
-Open **Command Prompt as Administrator** and run:
-
+## 6. Installation Steps (One-Time)
+1. Copy the **CX** folder to `C:\CX`.
+2. Open **Command Prompt as Administrator** and run:
 C:\CX\install_task.cmd
 
-
-Expected result:
-- SYSTEM-level scheduled task `CX-Win11-Upgrade` is created  
-- No upgrade is performed yet  
+This creates a scheduled task named `CX-Win11-Upgrade`.  
+**No upgrade runs yet.**
 
 ---
 
-## 7. Upgrade Execution Procedure (Zero Login)
-
-### Step 3 – Reboot System
-
+## 7. Upgrade Execution (Zero Login)
+Reboot the system:
 shutdown /r /t 0
 
-
-- Upgrade runs automatically under **NT AUTHORITY\SYSTEM**  
-- No user login is required  
+- Upgrade runs automatically under `NT AUTHORITY\SYSTEM`.
+- No user login required.
 
 ---
 
 ## 8. Execution Flow
-
 Boot
 ↓
-SYSTEM Scheduled Task
+Scheduled SYSTEM Task
 ↓
-Precheck (Hardware + Safety)
+precheck.ps1
 ↓
-If Safe → In-Place Upgrade
+If SAFE → setup.exe upgrade
 ↓
 Automatic Reboot(s)
 ↓
-Post-Upgrade Validation
+postcheck.ps1
 ↓
-Scheduled Task Self-Deletion
+Task self-deletion
 
 
 ---
 
 ## 9. Post-Upgrade Validation
-
-### Check OS Version
-
+**Check OS Version:**
 winver
-Expected:
-Windows 11 Enterprise
 
-### Status Files
-C:\CX\state
+Expected: Windows 11 Enterprise
 
-- `PRECHECK_OK.txt` → System passed readiness checks  
-- `SUCCESS.txt` → Upgrade completed successfully  
-- `ROLLBACK.txt` → Automatic rollback occurred  
+**Status Files (`C:\CX\state`):**
+- `PRECHECK_OK.txt` — readiness checks passed
+- `SUCCESS.txt` — upgrade completed
+- `ROLLBACK.txt` — rollback occurred
 
-### BitLocker Status
+**BitLocker Status:**
 manage-bde -status
 
-Protection should be **On**
+Protection should be ON
 
 ---
 
 ## 10. Rollback Behavior
-
-- Rollback occurs automatically if upgrade fails  
-- No user action required  
-- Data, apps, and configurations remain intact  
-- Logs preserved for audit  
-
-Rollback window: **10 days (default Windows behavior)**
+- Automatic if upgrade fails
+- No data, apps, or configs lost
+- Logs preserved for audit
+- Rollback window: 10 days (Windows default)
 
 ---
 
-## 11. Emergency Procedures
-
-### Cancel Upgrade Before Reboot
-
-
+## 11. Emergency / Abort
+If upgrade must be stopped **before reboot**:
 C:\CX\uninstall_task.cmd
 
-
-### Power Interruption Handling
-- Windows Setup will resume or roll back automatically  
-- No manual recovery required  
+Removes scheduled task before it runs.
 
 ---
 
-## 12. Logs & Audit
-
-- Logs are stored in:
-
-
-C:\CX\logs
-
-- Status files in:
-
-
-C:\CX\state
-
-- Can be collected manually for audit purposes  
+## 12. DOs
+✔ Use Volume License ISO only  
+✔ Ensure stable power  
+✔ Keep CX folder intact  
+✔ Allow automatic reboots  
+✔ Collect logs after upgrade  
+✔ Pilot rollout before mass deployment
 
 ---
 
-## 13. DOs (MANDATORY)
-
-✔ Use **Volume License ISO** only  
-✔ Ensure **stable power**  
-✔ Keep **CX folder intact**  
-✔ Allow **automatic reboots**  
-✔ Collect logs post-upgrade  
-✔ Use phased rollout for multiple systems  
-
----
-
-## 14. DON’Ts (STRICTLY PROHIBITED)
-
-❌ Do not rename the CX folder  
-❌ Do not use Retail / OEM ISO  
-❌ Do not connect to Internet  
+## 13. DON’Ts
+❌ Do not rename CX folder  
+❌ Do not use Retail ISO  
+❌ Do not connect to Internet during upgrade  
 ❌ Do not login during upgrade  
 ❌ Do not force shutdown during setup  
-❌ Do not modify scripts without authorization  
+❌ Do not modify scripts without approval
 
 ---
 
-## 15. Compliance & Security Notes
-
+## 14. Compliance & Security
 - No outbound network calls  
-- No credential usage  
-- No domain modification  
-- No activation changes  
-- Fully compliant with Microsoft enterprise and defense deployment standards  
+- No credentials required  
+- No domain or activation changes  
+- Fully compliant with defense and enterprise deployment standards
 
 ---
 
-## 16. Verification Commands (Optional)
+## 15. Verification Commands
+Check task removed:
+schtasks /query | findstr CX
 
-- Check OS version: `winver`  
-- Check scheduled task: `schtasks /query | findstr CX`  
-- Check BitLocker: `manage-bde -status`  
+Check upgrade logs:
+dir C:\CX\logs
+
+Check OS version:
+winver
+
+
+---
+
+## 16. Support & Troubleshooting
+- Confirm ISO path & integrity
+- Review `C:\CX\state` and `C:\CX\logs`
+- Verify hardware prerequisites
+- Retry in pilot environment if failure occurs
 
 ---
 
 ## 17. Ownership
-
 Framework Name: **CX Upgrade Framework**  
 Execution Context: SYSTEM  
 Deployment Type: Offline / Air-Gapped  
-Upgrade Method: In-Place  
+Upgrade Method: In-Place
 
 ---
+
 ## 18. End of Document
